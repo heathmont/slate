@@ -5,7 +5,7 @@ language_tabs:
    - javascript
     
 toc_footers:
-  - <a href='https://github.com/tripit/slate'>Documentation Powered by Onetouch.io</a>
+  - <a href='https://onetouch.io/'>Documentation Powered by Onetouch.io</a>
 
 search: true
 ---
