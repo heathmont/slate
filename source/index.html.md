@@ -1,189 +1,256 @@
 ---
-title: API Reference
+title: Onetouch Integration
 
 language_tabs:
-  - shell
-  - ruby
-  - python
-  - javascript
-
+   - javascript
+    
 toc_footers:
-  - <a href='#'>Sign Up for a Developer Key</a>
-  - <a href='https://github.com/tripit/slate'>Documentation Powered by Slate</a>
-
-includes:
-  - errors
+  - <a href='https://github.com/tripit/slate'>Documentation Powered by Onetouch.io</a>
 
 search: true
 ---
 
 # Introduction
 
-Welcome to the Kittn API! You can use our API to access Kittn API endpoints, which can get information on various cats, kittens, and breeds in our database.
+> Displaying onetouch game on your site
 
-We have language bindings in Shell, Ruby, and Python! You can view code examples in the dark area to the right, and you can switch the programming language of the examples with the tabs in the top right.
-
-This example API documentation page was created with [Slate](https://github.com/tripit/slate). Feel free to edit it and use it as a base for your own API's documentation.
-
-# Authentication
-
-> To authorize, use this code:
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
+```html
+<html>
+   <header>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.js"></script>
+   </header>
+   <body >
+    <script type=javascript>
+    
+      $(document).ready(setGameURL());
+       
+      function setGameURL(){
+        var onetouchBaseUrl = "https://prod.onetouch.io";
+        var gameID = 2344234;
+        var token = "3453450340fdslgkwerweropq234234serwe2342";
+        var lobbyUrl = "http://your_lobby_address";
+        var language = "en";
+     
+        var gameUrl = `${onetouchBaseUrl}/${gameID}/${token}?lobbyUrl=${encodeURIComponent(site.settings.url)}&lang=language`;
+                
+        $("#gameBox).attr("src",gameUrl); 
+        
+        return true;
+      }
+      
+    </script>
+    
+    <iframe id="gameBox" src="" >
+    </iframe>
+    
+   </body>
+  </html>
 ```
 
-```python
-import kittn
+Welcome to onetouch integration doc, landing onetouch's games on your site is as easy as creating an Iframe and pointing the source of the iframe to onetouch's url and specifying the various preferences intended for your game client.
 
-api = kittn.authorize('meowmeowmeow')
-```
+In order to ensure that all game transaction (monetary or value wise) as a partner you need to develop a wallet API server with which we can plug into when game is initialized as well as during the game play.
 
-```shell
-# With shell, you can just pass the correct header with each request
-curl "api_endpoint_here"
-  -H "Authorization: meowmeowmeow"
-```
+# Partner Wallet Server
+Partner is expected to provide a service URL for wallet operations, the service url is expected to provide the following capabilities
 
-```javascript
-const kittn = require('kittn');
++ Authenticate player
++ Get Balance
++ Transact
+  + Debit
+  + Credit
+  + Rollback 
++ Change Language
 
-let api = kittn.authorize('meowmeowmeow');
-```
+## Request Overview
 
-> Make sure to replace `meowmeowmeow` with your API key.
+The following are true for all requests made to the partner service.
 
-Kittn uses API keys to allow access to the API. You can register a new Kittn API key at our [developer portal](http://example.com/developers).
++ Request is in standard JSON format
++ Requests uses the standard HTTP POST method.
++ Request are signed based on the payload contained in the request, which the partner is expected to verify  with the secure key provided. 
++ Every request to the partner wallet service is expected return the following response structure.
 
-Kittn expects for the API key to be included in all API requests to the server in a header that looks like the following:
+  
+Every request contains the following fields
 
-`Authorization: meowmeowmeow`
+### Standard Request Parameters
 
-<aside class="notice">
-You must replace <code>meowmeowmeow</code> with your personal API key.
-</aside>
+Field   | Type    | Required | Derscription  
+------  |-------- |----------| ------------  
+partner |  string | Yes      | Partner name as it exist on our platform 
+token   |  string | Yes      | The token for the request  
 
-# Kittens
+Every request must return either a successful response or an error response according to the structure described below :
 
-## Get All Kittens
+### Standard success response
 
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get()
-```
-
-```shell
-curl "http://example.com/api/kittens"
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let kittens = api.kittens.get();
-```
-
-> The above command returns JSON structured like this:
+> Sample success response
 
 ```json
-[
   {
-    "id": 1,
-    "name": "Fluffums",
-    "breed": "calico",
-    "fluffiness": 6,
-    "cuteness": 7
-  },
-  {
-    "id": 2,
-    "name": "Max",
-    "breed": "unknown",
-    "fluffiness": 5,
-    "cuteness": 10
+    "success" : {
+      "user": "432100",
+      "balance": 100
+    }
   }
-]
 ```
+
+Field   | Type    | Required | Derscription  
+------  |-------- |----------| ------------  
+success |  JSON Object | Yes      | Successful response envelope 
+success.user |  string | Yes      | Player ID 
+success.balance |  number | Yes      | Player Balance 
+
+
+### Standard error response
+
+> Sample error response
+
+```json
+  {
+    "error" : {
+      "code" : 7,
+      "message" : "User has insufficient fund"
+    }
+  }
+```
+
+Field   | Type    | Required | Derscription  
+------  |-------- |----------| ------------  
+error |  JSON Object | Yes      | Failed request response envelope 
+error.code |  enum | Yes      | An error code
+error.message |  number | Yes      | Description of the error 
+
+
+### Standard errors
+
+> Error codes enumeration
+
+``` python	 
+	 1 = General / other error
+	 2 = Invalid partner name provided
+	 3 = Invalid token provided
+	 4 = Invalid game provided
+	 5 = Invalid user provided
+	 6 = Invalid currency provided
+	 7 = Insufficient user funds
+	 8 = User is disabled
+	 9 = Invalid message signature
+	10 = User login token has been expired
+```
+
+A partner service can respond with one of the following errors :
+
+## Authentication
+> Player request authentication
+
+```javascript
+const crypto = require('crypto');
+ 
+ /**
+  * @params Array request parameters
+  * @headers Array reuest headers
+  **/ 
+ function verifySignature(params, headers) {
+   var verify = crypto.createVerify('RSA-SHA256');
+   var keys = Object.keys(params).sort();
+   var message = keys.map(function (key) {
+       return key + "=" + params[key]; // concatenate key value pairs into a string, e.g key=value
+   }).join('&'); // concatenate key value pairs into a single string delimited by '&'
+   verify.update(message, 'utf8'); 
+ 
+   // assuming the public key is stored as ONETOUCH_PUBLIC_KEY env var
+   return verify.verify(process.env.ONETOUCH_PUBLIC_KEY, headers['x-onetouch-signature'], 'base64'); //Comparing your pulic key to the pre-signed value in the header.
+}
+```
+
+In order to ascertain the security of incoming request, the partner service is expected to verify the genuinity and authenticity of every request by verifying the value of the request header `X-Onetouch-Signature`
+
+This header is passed along with every request. 
+
+Similar implementation in ```php``` can be found here http://php.net/manual/en/function.openssl-verify.php
+
+Partner service should decline a request and response with the appropriate error message in such scenario where the key verification failed.
 
 This endpoint retrieves all kittens.
 
 ### HTTP Request
 
-`GET http://example.com/api/kittens`
+This endpoint should validate the player
+
+`POST http://partner_endpoint_url/auth`
 
 ### Query Parameters
 
-Parameter | Default | Description
---------- | ------- | -----------
-include_cats | false | If set to true, the result will also include cats.
-available | true | If set to false, the result will include kittens that have already been adopted.
+Field   | Type    | Required | Derscription  
+------  |-------- |----------| ------------  
+Partner |  string | Yes      |  
+token   |  string | Yes      | 
+game    |  string | Yes      | The current game identifier in the player's client|
+gameMode | string | Yes      | Game context Demo or Real money
 
-<aside class="success">
-Remember — a happy kitten is an authenticated kitten!
-</aside>
 
-## Get a Specific Kitten
+## Get Balance
 
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2"
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.get(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "name": "Max",
-  "breed": "unknown",
-  "fluffiness": 5,
-  "cuteness": 10
-}
-```
-
-This endpoint retrieves a specific kitten.
-
-<aside class="warning">Inside HTML code blocks like this one, you can't use Markdown, so use <code>&lt;code&gt;</code> blocks to denote code.</aside>
+This endpoint should return the balance of a specified player
 
 ### HTTP Request
 
-`GET http://example.com/kittens/<ID>`
+`POST http://partner_endpoint_url/getBalance`
 
-### URL Parameters
+### Query Parameters
 
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to retrieve
+Field      | Type          |Required       | Description |
+-----------|---------------|---------------|--------------
+Partner    | String        | Yes           |  |
+token      | String        | Yes           |  |
+game       | String        | Yes           | The current game in the player's client|
+gameMode   | String        | Yes           | Game context Demo or Real money|
+user       | String        | Yes           | Player ID|
 
+
+## Transact
+
+This endpoint should handle transaction operations such as `credit`, `debit`, `rollback`
+
+### HTTP Request
+
+`POST http://partner_endpoint_url/transact`
+
+### Query Parameters
+
+Field       | Type          |Required    | Description |
+-----------|---------------|---------------|--------------
+Partner     | string        | Yes           |  |
+token       | string        | Yes           |  |
+game        | string        | Yes           | The current game in the player's client|
+gameMode    | string        | Yes           | Game context Demo or Real money|
+user        | string        | Yes           | Player|
+transaction  | string        | Yes           | Transaction ID|
+round       | string        | Yes           | Round identifier|
+bet         | string        | Yes           | |
+type        | number        | Yes           | `0 - BET`, `1 - WIN`, `2 - ROLLBACK`|
+amount      | number        | Yes           | Transaction amount|
+currency    | string        | Yes           | Transaction amount currency|
+reference   | string        | Yes           | Transaction reference|
+
+
+## Change Language
+
+This endpoint is for reporting the language preference changes that the user sets in the game client. 
+
+This preference can be used next time when the game is launched, by parsing as a parameter to the client url for get game
+
+### HTTP Request
+
+`POST http://partner_endpoint_url/changeLanguage`
+
+### Query Parameters
+
+| Field       | Type          |Required    | Description |
+--------------|---------------|---------------|--------------
+| Partner     | string        | Yes           |  |
+| token       | string        | Yes           |  |
+| user        | string        | Yes           | Player|
+| language    | string        | Yes           | Language identifier|
